@@ -168,7 +168,7 @@ def main():
     for ifile in range(0, ctfiles-1):
         root = etree.Element("workout_file")
         root.append(element_text("author", "J. Doe"))
-        titlesel = WorkoutNames[ifile]
+        titlesel = WorkoutNames[ifile+1]
         title = titlesel.text_content()
         root.append(element_text("name", title))
 
@@ -180,7 +180,7 @@ def main():
         workout = etree.Element("workout")
 
         # selected indices in this file
-        stepindices = range(inewfile[ifile],inewfile[ifile+1]-1)
+        stepindices = range(inewfile[ifile],inewfile[ifile+1])
 
         for i in range(0, len(stepindices)):
             node = steps[stepindices[i]]
