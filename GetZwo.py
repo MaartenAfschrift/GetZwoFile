@@ -2,6 +2,7 @@ import argparse
 import re
 import sys
 from enum import Enum
+import os
 
 import requests
 from lxml import etree, html
@@ -194,7 +195,10 @@ def main():
         #write the file
         etree.indent(root, space="    ")
         strfilename = title + '.zwo'
-        with open(strfilename, 'w') as f:
+        datapath = "C:\\Temp\\ZwoFiles\\"
+        if not(os.path.isdir(datapath)):
+            os.makedirs(datapath)
+        with open(datapath + strfilename, 'w') as f:
             f.write(
                 etree.tostring(root, pretty_print=True, encoding="unicode"),
             )
