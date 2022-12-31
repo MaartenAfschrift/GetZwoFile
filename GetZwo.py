@@ -15,32 +15,34 @@ class StepPosition(Enum):
     LAST = 2
 
 RAMP_RE = re.compile(
-    r'(?:(?P<mins>\d+)min )?(?:(?P<secs>\d+)sec )?'
+    r'(?:(?P<hrs>\d+)hr )?(?:(?P<mins>\d+)min )?(?:(?P<secs>\d+)sec )?'
     r'(?:@ (?P<cadence>\d+)rpm, )?from (?P<low>\d+) to (?P<high>\d+)% FTP'
 )
 
 STEADY_RE = re.compile(
-    r'(?:(?P<mins>\d+)min )?(?:(?P<secs>\d+)sec )?'
+    r'(?:(?P<hrs>\d+)hr )?(?:(?P<mins>\d+)min )?(?:(?P<secs>\d+)sec )?'
     r'@ (?:(?P<cadence>\d+)rpm, )?(?P<power>\d+)% FTP'
 )
 
 INTERVALS_RE = re.compile(
-    r'(?P<reps>\d+)x (?:(?P<on_mins>\d+)min )?(?:(?P<on_secs>\d+)sec )?'
+    r'(?P<reps>\d+)x (?:(?P<on_hrs>\d+)hr )?(?:(?P<on_mins>\d+)min )?(?:(?P<on_secs>\d+)sec )?'
     r'@ (?:(?P<on_cadence>\d+)rpm, )?(?P<on_power>\d+)% FTP,'
-    r'(?:(?P<off_mins>\d+)min )?(?:(?P<off_secs>\d+)sec )?'
+    r'(?:(?P<off_hrs>\d+)hr )?(?:(?P<off_mins>\d+)min )?(?:(?P<off_secs>\d+)sec )?'
     r'@ (?:(?P<off_cadence>\d+)rpm, )?(?P<off_power>\d+)% FTP'
 )
 
 FREE_RIDE_RE = re.compile(
-    r'(?:(?P<mins>\d+)min )?(?:(?P<secs>\d+)sec )?free ride'
+    r'(?:(?P<hrs>\d+)hr )?(?:(?P<mins>\d+)min )?(?:(?P<secs>\d+)sec )?free ride'
 )
 
-def calc_duration(mins, secs):
+def calc_duration(hrs,mins, secs):
     d = 0
     if secs:
         d += int(secs)
     if mins:
         d += int(mins) * 60
+    if hrs:
+        d += int(hrs) * 60 * 60
     return d
 
 def ramp(match, pos):
@@ -48,7 +50,7 @@ def ramp(match, pos):
         StepPosition.FIRST: "Warmup",
         StepPosition.LAST: "Cooldown"
     }.get(pos, "Ramp")
-    duration = calc_duration(match["mins"], match["secs"])
+    duration = calc_duration(match["hrs"], match["mins"], match["secs"])
     cadence = match.get("cadence")
     low_power = match["low"] / 100.0
     high_power = match["high"] / 100.0
@@ -62,7 +64,7 @@ def ramp(match, pos):
     return node
 
 def steady(match, pos):
-    duration = calc_duration(match["mins"], match["secs"])
+    duration = calc_duration(match["hrs"], match["mins"], match["secs"])
     cadence = match.get("cadence")
     power = match["power"] / 100.0
     node = E.SteadyState(Duration=str(duration), Power=str(power), pace=str(0))
@@ -71,8 +73,8 @@ def steady(match, pos):
     return node
 
 def intervals(match, pos):
-    on_duration = calc_duration(match["on_mins"], match["on_secs"])
-    off_duration = calc_duration(match["off_mins"], match["off_secs"])
+    on_duration = calc_duration(match["on_hrs"], match["on_mins"], match["on_secs"])
+    off_duration = calc_duration(match["on_hrs"], match["off_mins"], match["off_secs"])
     reps = match["reps"]
     on_power = match["on_power"] / 100.0
     off_power = match["off_power"] / 100.0
@@ -93,7 +95,7 @@ def intervals(match, pos):
 
 def free_ride(match, pos):
     # TODO: can have cadence?
-    duration = calc_duration(match["mins"], match["secs"])
+    duration = calc_duration(match["hrs"], match["mins"], match["secs"])
     return E.FreeRide(Duration=str(duration), FlatRoad=str(0))
 
 BLOCKS = [
@@ -139,10 +141,10 @@ def element_text(element, text):
 def main():
     args = parse_args()
     #content = read_file("https://whatsonzwift.com/workouts/build-me-up/week-4-pedaling-drills")
-    #content = read_file(args.target)
+    content = read_file(args.target)
     #if not content:
     content = fetch_url(args.target)
-    #content = fetch_url('https://whatsonzwift.com/workouts/build-me-up')
+    #content = fetch_url('https://whatsonzwift.com/workouts/pebble-pounder')
     tree = html.fromstring(content)
     title = text(tree, '//h4[contains(@class, "flaticon-bike")]').strip()
     desc = text(tree, '//div[contains(@class, "workoutdescription")]/p')
@@ -167,7 +169,7 @@ def main():
 
     for ifile in range(0, ctfiles-1):
         root = etree.Element("workout_file")
-        root.append(element_text("author", "J. Doe"))
+        root.append(element_text("author", "M. Afschrift"))
         titlesel = WorkoutNames[ifile+1]
         title = titlesel.text_content()
         root.append(element_text("name", title))
@@ -195,6 +197,8 @@ def main():
         #write the file
         etree.indent(root, space="    ")
         strfilename = title + '.zwo'
+        # check for slash in strfilename and remove if needed
+        strfilename = strfilename.replace('/', '_')
         datapath = "C:\\Temp\\ZwoFiles\\"
         if not(os.path.isdir(datapath)):
             os.makedirs(datapath)
