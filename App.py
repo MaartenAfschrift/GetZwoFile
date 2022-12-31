@@ -318,46 +318,49 @@ class MainWindow(QMainWindow):
         self.labelDownload.setText("App info: " + str(ctfiles) + "found")
 
         for ifile in range(0, ctfiles - 1):
-            root = etree.Element("workout_file")
-            root.append(element_text("author", "M. Afschrift"))
-            titlesel = WorkoutNames[ifile + 1]
-            title = titlesel.text_content()
-            root.append(element_text("name", title))
+            try:
+                root = etree.Element("workout_file")
+                root.append(element_text("author", "M. Afschrift"))
+                titlesel = WorkoutNames[ifile + 1]
+                title = titlesel.text_content()
+                root.append(element_text("name", title))
 
-            # find the descrtion after the title
-            root.append(element_text("description", "ToDo"))
-            root.append(element_text("sportType", "bike"))
-            root.append(etree.Element("tags"))
-            workout = etree.Element("workout")
+                # find the descrtion after the title
+                root.append(element_text("description", "ToDo"))
+                root.append(element_text("sportType", "bike"))
+                root.append(etree.Element("tags"))
+                workout = etree.Element("workout")
 
-            # selected indices in this file
-            stepindices = range(inewfile[ifile], inewfile[ifile + 1])
+                # selected indices in this file
+                stepindices = range(inewfile[ifile], inewfile[ifile + 1])
 
-            for i in range(0, len(stepindices)):
-                node = steps[stepindices[i]]
-                if i == 0:
-                    pos = StepPosition.FIRST
-                elif i == len(steps) - 1:
-                    pos = StepPosition.LAST
-                else:
-                    pos = StepPosition.MIDDLE
-                workout.append(parse_node(node, pos))
-            root.append(workout)
-            # write the file
-            etree.indent(root, space="    ")
-            strfilename = 'training ' + str(ifile) + ' ' + title + '.zwo'
-            # check for slash in strfilename and remove if needed
-            strfilename = strfilename.replace('/', '_')
-            datapath = self.dirsel
-            if not (os.path.isdir(datapath)):
-                os.makedirs(datapath)
+                for i in range(0, len(stepindices)):
+                    node = steps[stepindices[i]]
+                    if i == 0:
+                        pos = StepPosition.FIRST
+                    elif i == len(steps) - 1:
+                        pos = StepPosition.LAST
+                    else:
+                        pos = StepPosition.MIDDLE
+                    workout.append(parse_node(node, pos))
+                root.append(workout)
+                # write the file
+                etree.indent(root, space="    ")
+                strfilename = 'training ' + str(ifile) + ' ' + title + '.zwo'
+                # check for slash in strfilename and remove if needed
+                strfilename = strfilename.replace('/', '_')
+                datapath = self.dirsel
+                if not (os.path.isdir(datapath)):
+                    os.makedirs(datapath)
+                    #print('open file ', datapath)
+                with open(datapath + '/' + strfilename, 'w') as f:
+                    f.write(
+                        etree.tostring(root, pretty_print=True, encoding="unicode"),
+                    )
                 #print('open file ', datapath)
-            with open(datapath + '/' + strfilename, 'w') as f:
-                f.write(
-                    etree.tostring(root, pretty_print=True, encoding="unicode"),
-                )
-            #print('open file ', datapath)
-            print('file ', datapath + '/' + strfilename , ' done')
+                print('file ', datapath + '/' + strfilename , ' done')
+            except:
+                print('errr in file' + str(ifile))
         self.labelDownload.setText("App info: " + str(ctfiles) + " zwo files downloaded")
     def download(self):
 
